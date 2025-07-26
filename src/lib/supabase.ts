@@ -1,10 +1,17 @@
 import { createClient } from '@supabase/supabase-js';
 import { Account, BannerImage, NewsItem } from '../types';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://sbp-50b687b9ca3f16409bd0802fd4cc5f9cd063a5e0.supabase.co';
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'sbp_50b687b9ca3f16409bd0802fd4cc5f9cd063a5e0';
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+if (!supabaseUrl || !supabaseAnonKey) {
+  console.error('Missing Supabase environment variables');
+}
+
+export const supabase = createClient(
+  supabaseUrl || 'https://placeholder.supabase.co',
+  supabaseAnonKey || 'placeholder-key'
+);
 
 // Database functions
 export const accountsService = {
