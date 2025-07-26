@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { 
   BarChart3, 
@@ -10,16 +11,14 @@ import {
   Image,
   MessageSquare,
   LogOut,
-  Trash2
+  Trash2,
+  FileText
 } from 'lucide-react';
 import AccountForm from '../../components/Admin/AccountForm';
 import BannerManager from '../../components/Admin/BannerManager';
 import NewsManager from '../../components/Admin/NewsManager';
 import TermsManager from '../../components/Admin/TermsManager';
 import { 
-  mockAccounts, 
-  mockBanners, 
-  mockNews,
   accountsService,
   bannersService,
   newsService
@@ -32,9 +31,9 @@ interface DashboardProps {
 
 const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
   const [activeTab, setActiveTab] = useState('overview');
-  const [accounts, setAccounts] = useState<Account[]>(mockAccounts);
-  const [banners, setBanners] = useState<BannerImage[]>(mockBanners);
-  const [news, setNews] = useState<NewsItem[]>(mockNews);
+  const [accounts, setAccounts] = useState<Account[]>([]);
+  const [banners, setBanners] = useState<BannerImage[]>([]);
+  const [news, setNews] = useState<NewsItem[]>([]);
   const [showAccountForm, setShowAccountForm] = useState(false);
   const [editingAccount, setEditingAccount] = useState<Account | undefined>();
   const [loading, setLoading] = useState(true);
