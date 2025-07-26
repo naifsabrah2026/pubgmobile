@@ -4,18 +4,28 @@ import { Account, BannerImage, NewsItem } from '../types';
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.error('Missing Supabase environment variables');
+// Check if we have valid Supabase credentials
+const hasValidCredentials = supabaseUrl && 
+  supabaseAnonKey && 
+  supabaseUrl !== 'https://placeholder.supabase.co' &&
+  supabaseAnonKey !== 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBsYWNlaG9sZGVyIiwicm9sZSI6ImFub24iLCJpYXQiOjE2NDUxOTI4MDAsImV4cCI6MTk2MDc2ODgwMH0.placeholder';
+
+if (!hasValidCredentials) {
+  console.warn('Using mock data - Supabase credentials not configured');
 }
 
-export const supabase = createClient(
-  supabaseUrl || 'https://placeholder.supabase.co',
-  supabaseAnonKey || 'placeholder-key'
-);
+// Only create Supabase client if we have valid credentials
+export const supabase = hasValidCredentials ? createClient(supabaseUrl, supabaseAnonKey) : null;
 
 // Database functions
 export const accountsService = {
   async getAll(): Promise<Account[]> {
+    // Return mock data if Supabase is not configured
+    if (!supabase) {
+      console.log('Using mock accounts data');
+      return mockAccounts;
+    }
+    
     try {
       const { data, error } = await supabase
         .from('accounts')
@@ -95,6 +105,12 @@ export const accountsService = {
 
 export const bannersService = {
   async getAll(): Promise<BannerImage[]> {
+    // Return mock data if Supabase is not configured
+    if (!supabase) {
+      console.log('Using mock banners data');
+      return mockBanners;
+    }
+    
     try {
       const { data, error } = await supabase
         .from('banners')
@@ -114,6 +130,11 @@ export const bannersService = {
   },
 
   async updateAll(banners: BannerImage[]): Promise<void> {
+    if (!supabase) {
+      console.log('Mock mode: Banner update simulated');
+      return;
+    }
+    
     try {
       // Delete all existing banners
       await supabase.from('banners').delete().neq('id', '');
@@ -138,6 +159,12 @@ export const bannersService = {
 
 export const newsService = {
   async getAll(): Promise<NewsItem[]> {
+    // Return mock data if Supabase is not configured
+    if (!supabase) {
+      console.log('Using mock news data');
+      return mockNews;
+    }
+    
     try {
       const { data, error } = await supabase
         .from('news')
@@ -157,6 +184,11 @@ export const newsService = {
   },
 
   async updateAll(news: NewsItem[]): Promise<void> {
+    if (!supabase) {
+      console.log('Mock mode: News update simulated');
+      return;
+    }
+    
     try {
       // Delete all existing news
       await supabase.from('news').delete().neq('id', '');
@@ -181,6 +213,15 @@ export const newsService = {
 
 export const settingsService = {
   async getTerms(): Promise<{ selling_terms: string; buying_terms: string }> {
+    // Return default terms if Supabase is not configured
+    if (!supabase) {
+      console.log('Using default terms data');
+      return {
+        selling_terms: 'تصفير حسابك من كل الارتباطات\nإزالة كل بريد إلكتروني في اللعبة\nإزالة كل حساب تواصل اجتماعي (X، فيسبوك، وغيرها)\nاجعل فقط ارتباط الهاتف الخاص بك في اللعبة\nتواصل معنا وعند الاتفاق سنقوم بعمل إيميل جديد لحسابك\nسنرسل أموالك خلال 21 يوم لسياسة شركة PUBG للاسترجاع',
+        buying_terms: 'قم باختيار الحساب المطلوب\nقم بإضافة معلوماتك الشخصية\nاضغط على "إرسال إلى الواتساب"\nسيتم إرسالك إلى الواتساب تلقائياً مع معلوماتك\nسيتم إرسال معلومات الحساب الذي تريده'
+      };
+    }
+    
     try {
       const { data, error } = await supabase
         .from('settings')
@@ -207,6 +248,11 @@ export const settingsService = {
   },
 
   async updateTerms(selling_terms: string, buying_terms: string): Promise<void> {
+    if (!supabase) {
+      console.log('Mock mode: Terms update simulated');
+      return;
+    }
+    
     try {
       const { error } = await supabase
         .from('settings')
