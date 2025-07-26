@@ -1,24 +1,57 @@
 import React from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { AlertCircle, CheckCircle, MessageCircle } from 'lucide-react';
+import { settingsService } from '../lib/supabase';
 
 const Terms: React.FC = () => {
-  const sellingTerms = [
-    'تصفير حسابك من كل الارتباطات',
-    'إزالة كل بريد إلكتروني في اللعبة',
-    'إزالة كل حساب تواصل اجتماعي (X، فيسبوك، وغيرها)',
-    'اجعل فقط ارتباط الهاتف الخاص بك في اللعبة',
-    'تواصل معنا وعند الاتفاق سنقوم بعمل إيميل جديد لحسابك',
-    'سنرسل أموالك خلال 21 يوم لسياسة شركة PUBG للاسترجاع'
-  ];
+  const [sellingTerms, setSellingTerms] = useState<string[]>([]);
+  const [buyingTerms, setBuyingTerms] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const buyingSteps = [
-    'قم باختيار الحساب المطلوب',
-    'قم بإضافة معلوماتك الشخصية',
-    'اضغط على "إرسال إلى الواتساب"',
-    'سيتم إرسالك إلى الواتساب تلقائياً مع معلوماتك',
-    'سيتم إرسال معلومات الحساب الذي تريده'
-  ];
+  useEffect(() => {
+    loadTerms();
+  }, []);
+
+  const loadTerms = async () => {
+    try {
+      setLoading(true);
+      const terms = await settingsService.getTerms();
+      setSellingTerms(terms.selling_terms.split('\n').filter(term => term.trim() !== ''));
+      setBuyingTerms(terms.buying_terms.split('\n').filter(term => term.trim() !== ''));
+    } catch (error) {
+      console.error('Error loading terms:', error);
+      // Fallback to default terms
+      setSellingTerms([
+        'تصفير حسابك من كل الارتباطات',
+        'إزالة كل بريد إلكتروني في اللعبة',
+        'إزالة كل حساب تواصل اجتماعي (X، فيسبوك، وغيرها)',
+        'اجعل فقط ارتباط الهاتف الخاص بك في اللعبة',
+        'تواصل معنا وعند الاتفاق سنقوم بعمل إيميل جديد لحسابك',
+        'سنرسل أموالك خلال 21 يوم لسياسة شركة PUBG للاسترجاع'
+      ]);
+      setBuyingTerms([
+        'قم باختيار الحساب المطلوب',
+        'قم بإضافة معلوماتك الشخصية',
+        'اضغط على "إرسال إلى الواتساب"',
+        'سيتم إرسالك إلى الواتساب تلقائياً مع معلوماتك',
+        'سيتم إرسال معلومات الحساب الذي تريده'
+      ]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black flex items-center justify-center">
+        <div className="text-center">
+          <div className="spinner mb-4"></div>
+          <p className="text-white">جاري تحميل الشروط...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black py-8">
@@ -102,7 +135,7 @@ const Terms: React.FC = () => {
             </div>
             
             <div className="space-y-4">
-              {buyingSteps.map((step, index) => (
+              {buyingTerms.map((step, index) => (
                 <motion.div
                   key={index}
                   initial={{ opacity: 0, x: -20 }}

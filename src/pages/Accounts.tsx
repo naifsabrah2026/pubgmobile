@@ -1,24 +1,55 @@
 import React, { useState } from 'react';
+import { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Filter, Search } from 'lucide-react';
 import AccountCard from '../components/AccountCard';
-import { mockAccounts } from '../lib/supabase';
+import { accountsService } from '../lib/supabase';
+import { Account } from '../types';
 
 const Accounts: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState<'all' | 'premium' | 'various'>('all');
   const [searchTerm, setSearchTerm] = useState('');
+  const [accounts, setAccounts] = useState<Account[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const filteredAccounts = mockAccounts.filter(account => {
+  useEffect(() => {
+    loadAccounts();
+  }, []);
+
+  const loadAccounts = async () => {
+    try {
+      setLoading(true);
+      const accountsData = await accountsService.getAll();
+      setAccounts(accountsData);
+    } catch (error) {
+      console.error('Error loading accounts:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const filteredAccounts = accounts.filter(account => {
     const matchesCategory = selectedCategory === 'all' || account.category === selectedCategory;
     const matchesSearch = account.title.toLowerCase().includes(searchTerm.toLowerCase());
     return matchesCategory && matchesSearch;
   });
 
   const categories = [
-    { key: 'all', label: 'جميع الحسابات', count: mockAccounts.length },
-    { key: 'premium', label: 'حسابات مميزة', count: mockAccounts.filter(a => a.category === 'premium').length },
-    { key: 'various', label: 'حسابات متنوعة', count: mockAccounts.filter(a => a.category === 'various').length }
+    { key: 'all', label: 'جميع الحسابات', count: accounts.length },
+    { key: 'premium', label: 'حسابات مميزة', count: accounts.filter(a => a.category === 'premium').length },
+    { key: 'various', label: 'حسابات متنوعة', count: accounts.filter(a => a.category === 'various').length }
   ];
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black flex items-center justify-center">
+        <div className="text-center">
+          <div className="spinner mb-4"></div>
+          <p className="text-white">جاري تحميل الحسابات...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black py-8">

@@ -1,10 +1,224 @@
 import { createClient } from '@supabase/supabase-js';
+import { Account, BannerImage, NewsItem } from '../types';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://your-project.supabase.co';
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'your-anon-key-here';
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://sbp-50b687b9ca3f16409bd0802fd4cc5f9cd063a5e0.supabase.co';
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'sbp_50b687b9ca3f16409bd0802fd4cc5f9cd063a5e0';
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
+// Database functions
+export const accountsService = {
+  async getAll(): Promise<Account[]> {
+    try {
+      const { data, error } = await supabase
+        .from('accounts')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (error) {
+        console.error('Error fetching accounts:', error);
+        return mockAccounts;
+      }
+      
+      return data || mockAccounts;
+    } catch (error) {
+      console.error('Error fetching accounts:', error);
+      return mockAccounts;
+    }
+  },
+
+  async create(account: Omit<Account, 'id' | 'created_at'>): Promise<Account> {
+    try {
+      const { data, error } = await supabase
+        .from('accounts')
+        .insert([account])
+        .select()
+        .single();
+      
+      if (error) {
+        console.error('Error creating account:', error);
+        throw error;
+      }
+      
+      return data;
+    } catch (error) {
+      console.error('Error creating account:', error);
+      throw error;
+    }
+  },
+
+  async update(id: string, account: Partial<Account>): Promise<Account> {
+    try {
+      const { data, error } = await supabase
+        .from('accounts')
+        .update(account)
+        .eq('id', id)
+        .select()
+        .single();
+      
+      if (error) {
+        console.error('Error updating account:', error);
+        throw error;
+      }
+      
+      return data;
+    } catch (error) {
+      console.error('Error updating account:', error);
+      throw error;
+    }
+  },
+
+  async delete(id: string): Promise<void> {
+    try {
+      const { error } = await supabase
+        .from('accounts')
+        .delete()
+        .eq('id', id);
+      
+      if (error) {
+        console.error('Error deleting account:', error);
+        throw error;
+      }
+    } catch (error) {
+      console.error('Error deleting account:', error);
+      throw error;
+    }
+  }
+};
+
+export const bannersService = {
+  async getAll(): Promise<BannerImage[]> {
+    try {
+      const { data, error } = await supabase
+        .from('banners')
+        .select('*')
+        .order('order', { ascending: true });
+      
+      if (error) {
+        console.error('Error fetching banners:', error);
+        return mockBanners;
+      }
+      
+      return data || mockBanners;
+    } catch (error) {
+      console.error('Error fetching banners:', error);
+      return mockBanners;
+    }
+  },
+
+  async updateAll(banners: BannerImage[]): Promise<void> {
+    try {
+      // Delete all existing banners
+      await supabase.from('banners').delete().neq('id', '');
+      
+      // Insert new banners
+      if (banners.length > 0) {
+        const { error } = await supabase
+          .from('banners')
+          .insert(banners);
+        
+        if (error) {
+          console.error('Error updating banners:', error);
+          throw error;
+        }
+      }
+    } catch (error) {
+      console.error('Error updating banners:', error);
+      throw error;
+    }
+  }
+};
+
+export const newsService = {
+  async getAll(): Promise<NewsItem[]> {
+    try {
+      const { data, error } = await supabase
+        .from('news')
+        .select('*')
+        .order('order', { ascending: true });
+      
+      if (error) {
+        console.error('Error fetching news:', error);
+        return mockNews;
+      }
+      
+      return data || mockNews;
+    } catch (error) {
+      console.error('Error fetching news:', error);
+      return mockNews;
+    }
+  },
+
+  async updateAll(news: NewsItem[]): Promise<void> {
+    try {
+      // Delete all existing news
+      await supabase.from('news').delete().neq('id', '');
+      
+      // Insert new news
+      if (news.length > 0) {
+        const { error } = await supabase
+          .from('news')
+          .insert(news);
+        
+        if (error) {
+          console.error('Error updating news:', error);
+          throw error;
+        }
+      }
+    } catch (error) {
+      console.error('Error updating news:', error);
+      throw error;
+    }
+  }
+};
+
+export const settingsService = {
+  async getTerms(): Promise<{ selling_terms: string; buying_terms: string }> {
+    try {
+      const { data, error } = await supabase
+        .from('settings')
+        .select('selling_terms, buying_terms')
+        .eq('key', 'terms')
+        .single();
+      
+      if (error) {
+        console.error('Error fetching terms:', error);
+        return {
+          selling_terms: 'تصفير حسابك من كل الارتباطات\n• إزالة كل بريد إلكتروني في اللعبة\n• إزالة كل حساب تواصل اجتماعي (X، فيسبوك، وغيرها)\n• اجعل فقط ارتباط الهاتف الخاص بك في اللعبة\n• تواصل معنا وعند الاتفاق سنقوم بعمل إيميل جديد لحسابك\n• سنرسل أموالك خلال 21 يوم لسياسة شركة PUBG للاسترجاع',
+          buying_terms: 'قم باختيار الحساب المطلوب\n• قم بإضافة معلوماتك الشخصية\n• اضغط على "إرسال إلى الواتساب"\n• سيتم إرسالك إلى الواتساب تلقائياً مع معلوماتك\n• سيتم إرسال معلومات الحساب الذي تريده'
+        };
+      }
+      
+      return data;
+    } catch (error) {
+      console.error('Error fetching terms:', error);
+      return {
+        selling_terms: 'تصفير حسابك من كل الارتباطات\n• إزالة كل بريد إلكتروني في اللعبة\n• إزالة كل حساب تواصل اجتماعي (X، فيسبوك، وغيرها)\n• اجعل فقط ارتباط الهاتف الخاص بك في اللعبة\n• تواصل معنا وعند الاتفاق سنقوم بعمل إيميل جديد لحسابك\n• سنرسل أموالك خلال 21 يوم لسياسة شركة PUBG للاسترجاع',
+        buying_terms: 'قم باختيار الحساب المطلوب\n• قم بإضافة معلوماتك الشخصية\n• اضغط على "إرسال إلى الواتساب"\n• سيتم إرسالك إلى الواتساب تلقائياً مع معلوماتك\n• سيتم إرسال معلومات الحساب الذي تريده'
+      };
+    }
+  },
+
+  async updateTerms(selling_terms: string, buying_terms: string): Promise<void> {
+    try {
+      const { error } = await supabase
+        .from('settings')
+        .upsert({
+          key: 'terms',
+          selling_terms,
+          buying_terms
+        });
+      
+      if (error) {
+        console.error('Error updating terms:', error);
+        throw error;
+      }
+    } catch (error) {
+      console.error('Error updating terms:', error);
+      throw error;
+    }
+  }
+};
 // Mock data for development
 export const mockAccounts = [
   {

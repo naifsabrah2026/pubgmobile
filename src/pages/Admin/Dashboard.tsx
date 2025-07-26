@@ -15,7 +15,15 @@ import {
 import AccountForm from '../../components/Admin/AccountForm';
 import BannerManager from '../../components/Admin/BannerManager';
 import NewsManager from '../../components/Admin/NewsManager';
-import { mockAccounts, mockBanners, mockNews } from '../../lib/supabase';
+import TermsManager from '../../components/Admin/TermsManager';
+import { 
+  mockAccounts, 
+  mockBanners, 
+  mockNews,
+  accountsService,
+  bannersService,
+  newsService
+} from '../../lib/supabase';
 import { Account, BannerImage, NewsItem } from '../../types';
 
 interface DashboardProps {
@@ -29,13 +37,38 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
   const [news, setNews] = useState<NewsItem[]>(mockNews);
   const [showAccountForm, setShowAccountForm] = useState(false);
   const [editingAccount, setEditingAccount] = useState<Account | undefined>();
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      const [accountsData, bannersData, newsData] = await Promise.all([
+        accountsService.getAll(),
+        bannersService.getAll(),
+        newsService.getAll()
+      ]);
+      
+      setAccounts(accountsData);
+      setBanners(bannersData);
+      setNews(newsData);
+    } catch (error) {
+      console.error('Error loading data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const tabs = [
     { id: 'overview', name: 'نظرة عامة', icon: BarChart3 },
     { id: 'accounts', name: 'إدارة الحسابات', icon: Users },
     { id: 'banners', name: 'إدارة البانر', icon: Image },
     { id: 'news', name: 'الشريط الإخباري', icon: MessageSquare },
-    { id: 'pages', name: 'إدارة الصفحات', icon: Settings }
+    { id: 'terms', name: 'إدارة الشروط', icon: FileText },
+    { id: 'settings', name: 'الإعدادات', icon: Settings }
   ];
 
   const stats = [
@@ -45,25 +78,26 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
     { name: 'العملاء النشطين', value: '89', change: '+8%', color: 'from-purple-500 to-purple-600' }
   ];
 
-  const handleSaveAccount = (accountData: Omit<Account, 'id' | 'created_at'>) => {
-    if (editingAccount) {
-      // Update existing account
-      setAccounts(prev => prev.map(acc => 
-        acc.id === editingAccount.id 
-          ? { ...accountData, id: editingAccount.id, created_at: editingAccount.created_at }
-          : acc
-      ));
-    } else {
-      // Add new account
-      const newAccount: Account = {
-        ...accountData,
-        id: `account-${Date.now()}`,
-        created_at: new Date().toISOString()
-      };
-      setAccounts(prev => [...prev, newAccount]);
+  const handleSaveAccount = async (accountData: Omit<Account, 'id' | 'created_at'>) => {
+    try {
+      if (editingAccount) {
+        // Update existing account
+        const updatedAccount = await accountsService.update(editingAccount.id, accountData);
+        setAccounts(prev => prev.map(acc => 
+          acc.id === editingAccount.id ? updatedAccount : acc
+        ));
+      } else {
+        // Add new account
+        const newAccount = await accountsService.create(accountData);
+        setAccounts(prev => [newAccount, ...prev]);
+      }
+      setShowAccountForm(false);
+      setEditingAccount(undefined);
+      alert('تم حفظ الحساب بنجاح!');
+    } catch (error) {
+      console.error('Error saving account:', error);
+      alert('حدث خطأ أثناء حفظ الحساب');
     }
-    setShowAccountForm(false);
-    setEditingAccount(undefined);
   };
 
   const handleEditAccount = (account: Account) => {
@@ -71,19 +105,52 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
     setShowAccountForm(true);
   };
 
-  const handleDeleteAccount = (accountId: string) => {
+  const handleDeleteAccount = async (accountId: string) => {
     if (confirm('هل أنت متأكد من حذف هذا الحساب؟')) {
-      setAccounts(prev => prev.filter(acc => acc.id !== accountId));
+      try {
+        await accountsService.delete(accountId);
+        setAccounts(prev => prev.filter(acc => acc.id !== accountId));
+        alert('تم حذف الحساب بنجاح!');
+      } catch (error) {
+        console.error('Error deleting account:', error);
+        alert('حدث خطأ أثناء حذف الحساب');
+      }
     }
   };
 
-  const handleSaveBanners = (newBanners: BannerImage[]) => {
-    setBanners(newBanners);
+  const handleSaveBanners = async (newBanners: BannerImage[]) => {
+    try {
+      await bannersService.updateAll(newBanners);
+      setBanners(newBanners);
+      alert('تم حفظ البانر بنجاح!');
+    } catch (error) {
+      console.error('Error saving banners:', error);
+      alert('حدث خطأ أثناء حفظ البانر');
+    }
   };
 
-  const handleSaveNews = (newNews: NewsItem[]) => {
-    setNews(newNews);
+  const handleSaveNews = async (newNews: NewsItem[]) => {
+    try {
+      await newsService.updateAll(newNews);
+      setNews(newNews);
+      alert('تم حفظ الأخبار بنجاح!');
+    } catch (error) {
+      console.error('Error saving news:', error);
+      alert('حدث خطأ أثناء حفظ الأخبار');
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black flex items-center justify-center">
+        <div className="text-center">
+          <div className="spinner mb-4"></div>
+          <p className="text-white">جاري تحميل لوحة الإدارة...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black">
       <div className="flex">
@@ -284,28 +351,63 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
             </motion.div>
           )}
 
-          {activeTab === 'pages' && (
+          {activeTab === 'terms' && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+            >
+              <TermsManager />
+            </motion.div>
+          )}
+
+          {activeTab === 'settings' && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
             >
               <h1 className="text-3xl font-bold text-white mb-8">
-                إدارة الصفحات
+                الإعدادات العامة
               </h1>
               <div className="bg-gray-800/50 rounded-xl p-6 border border-yellow-500/20">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="p-4 bg-gray-700/50 rounded-lg">
-                    <h3 className="text-white font-semibold mb-2">صفحة الشروط</h3>
-                    <p className="text-gray-400 text-sm mb-4">إدارة محتوى صفحة الشروط والأحكام</p>
-                    <button className="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg text-sm">
-                      تعديل المحتوى
+                    <h3 className="text-white font-semibold mb-2">معلومات المتجر</h3>
+                    <p className="text-gray-400 text-sm mb-4">تحديث معلومات المتجر الأساسية</p>
+                    <button 
+                      onClick={() => alert('قريباً...')}
+                      className="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg text-sm"
+                    >
+                      تعديل المعلومات
                     </button>
                   </div>
                   <div className="p-4 bg-gray-700/50 rounded-lg">
                     <h3 className="text-white font-semibold mb-2">معلومات التواصل</h3>
                     <p className="text-gray-400 text-sm mb-4">تحديث معلومات التواصل والواتساب</p>
-                    <button className="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg text-sm">
-                      تعديل المعلومات
+                    <button 
+                      onClick={() => alert('قريباً...')}
+                      className="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg text-sm"
+                    >
+                      تعديل التواصل
+                    </button>
+                  </div>
+                  <div className="p-4 bg-gray-700/50 rounded-lg">
+                    <h3 className="text-white font-semibold mb-2">النسخ الاحتياطي</h3>
+                    <p className="text-gray-400 text-sm mb-4">إنشاء نسخة احتياطية من البيانات</p>
+                    <button 
+                      onClick={() => alert('قريباً...')}
+                      className="bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-lg text-sm"
+                    >
+                      إنشاء نسخة احتياطية
+                    </button>
+                  </div>
+                  <div className="p-4 bg-gray-700/50 rounded-lg">
+                    <h3 className="text-white font-semibold mb-2">إعدادات الأمان</h3>
+                    <p className="text-gray-400 text-sm mb-4">تغيير كلمة مرور الإدارة</p>
+                    <button 
+                      onClick={() => alert('قريباً...')}
+                      className="bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded-lg text-sm"
+                    >
+                      تغيير كلمة المرور
                     </button>
                   </div>
                 </div>

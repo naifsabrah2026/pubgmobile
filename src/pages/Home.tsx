@@ -1,12 +1,33 @@
 import React from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Star, Shield, Zap, Users } from 'lucide-react';
 import HeroBanner from '../components/HeroBanner';
 import AccountCard from '../components/AccountCard';
-import { mockAccounts } from '../lib/supabase';
+import { accountsService } from '../lib/supabase';
+import { Account } from '../types';
 
 const Home: React.FC = () => {
-  const featuredAccounts = mockAccounts.filter(account => account.featured);
+  const [accounts, setAccounts] = useState<Account[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadAccounts();
+  }, []);
+
+  const loadAccounts = async () => {
+    try {
+      setLoading(true);
+      const accountsData = await accountsService.getAll();
+      setAccounts(accountsData);
+    } catch (error) {
+      console.error('Error loading accounts:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const featuredAccounts = accounts.filter(account => account.featured);
 
   const features = [
     {
